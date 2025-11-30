@@ -11,6 +11,7 @@ import math
 import os
 from dataclasses import dataclass
 from typing import List
+import warnings
 
 import imageio
 import numpy as np
@@ -53,7 +54,14 @@ def load_scene(ply_path: str) -> tuple[np.ndarray, SceneBounds]:
     pcd = o3d.io.read_point_cloud(ply_path)
     if pcd.is_empty():
         raise ValueError("Loaded point cloud is empty")
-    points = np.asarray(pcd.points, dtype=np.float32)
+    points = np.asarray(pcd.points, dtype=np.float64)
+    finite_mask = np.isfinite(points).all(axis=1)
+    if not finite_mask.all():
+        removed = int((~finite_mask).sum())
+        points = points[finite_mask]
+        warnings.warn(f"Dropped {removed} non-finite points from the cloud")
+    if len(points) == 0:
+        raise ValueError("Point cloud has no finite points after filtering")
 
     min_corner = points.min(axis=0)
     max_corner = points.max(axis=0)
@@ -96,10 +104,13 @@ def plan_camera_path(
             break
 
     # Obstacle avoidance
-    kdtree = o3d.geometry.KDTreeFlann(o3d.utility.Vector3dVector(points))
+    kdtree = o3d.geometry.KDTreeFlann(o3d.utility.Vector3dVector(np.asarray(points, dtype=np.float64)))
     adjusted: List[np.ndarray] = []
     for wp in waypoints:
-        _, idx, dists = kdtree.search_knn_vector_3d(wp, 1)
+        try:
+            _, idx, dists = kdtree.search_knn_vector_3d(np.asarray(wp, dtype=np.float64), 1)
+        except RuntimeError:
+            idx, dists = [], []
         if idx:
             nearest = points[idx[0]]
             dist = math.sqrt(dists[0])
