@@ -1,0 +1,6 @@
+imageio[ffmpeg]
+numpy
+scipy
+open3d
+# Optional: CUDA Gaussian splatting renderer
+# gsplat
