@@ -26,6 +26,9 @@ Otherwise, it defaults to Open3D. Pass ``--renderer gsplat`` to *force* the
 CUDA path (the command will exit if gsplat is missing), or ``--renderer open3d``
 to force the CPU fallback.
 
+> Note: if you force ``--renderer gsplat``, make sure your gsplat version exposes
+> a ``load_ply`` helper (older builds may not); otherwise use ``--renderer open3d``.
+
 ### CUDA indoor example (60s @ 30 fps, 1280x720)
 Use this command to render an indoor-oriented fly-through on CUDA at 30 fps for
 one minute in 720p:
